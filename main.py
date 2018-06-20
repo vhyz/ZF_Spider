@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import copy
 import time
 import re
+import os
 
 
 class Spider:
@@ -40,6 +41,7 @@ class Spider:
         self.__headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36',
         }
+        self.__now_lessons_number = 0
 
     def __set_real_url(self):
         request = requests.get(self.__base_url, headers=self.__headers)
@@ -118,6 +120,10 @@ class Spider:
         self.__headers['Referer'] = request.url
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
+        selected_lessons_pre_tag = soup.find('legend', text='已选课程')
+        selected_lessons_tag = selected_lessons_pre_tag.next_sibling
+        tr_list = selected_lessons_tag.find_all('tr')[1:]
+        self.__now_lessons_number = len(tr_list)
         try:
             xq_tag = soup.find('select', id='ddl_xqbs')
             self.__base_data['ddl_xqbs'] = xq_tag.find('option')['value']
@@ -156,7 +162,7 @@ class Spider:
         for lesson in lesson_list:
             code = lesson.code
             data[code] = 'on'
-        request = requests.post(self.__headers['Referer'], data=data, headers=self.__headers)
+        request = requests.post(self.__headers['Referer'], data=data, headers=self.__headers,timeout=1)
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
         error_tag = soup.html.head.script
@@ -169,6 +175,7 @@ class Spider:
         selected_lessons_pre_tag = soup.find('legend', text='已选课程')
         selected_lessons_tag = selected_lessons_pre_tag.next_sibling
         tr_list = selected_lessons_tag.find_all('tr')[1:]
+        self.__now_lessons_number = len(tr_list)
         for tr in tr_list:
             td = tr.find('td')
             print(td.string)
@@ -183,12 +190,21 @@ class Spider:
             lesson_list[i].show()
         select_id = int(input())
         lesson_list = lesson_list[select_id:select_id + 1]
-        self.__select_lesson(lesson_list)
+        while True:
+            try:
+                number = self.__now_lessons_number
+                self.__select_lesson(lesson_list)
+                if self.__now_lessons_number > number:
+                    break;
+            except:
+                print("抢课失败，休息0.5秒后继续")
+                time.sleep(0.5)
 
 
 if __name__ == '__main__':
-    url = 'http://' #在这里输入你学校教务系统的IP地址
-    print('请输入你们学校教务系统的IP地址，不用加上前面的http://')
+    print('请输入你们学校教务系统的地址，不用加上前面的http://')
+    url = input()
+    url = 'http://' + url
     spider = Spider(url)
     print('请输入学号')
     uid = input()  #学号
@@ -196,3 +212,4 @@ if __name__ == '__main__':
     password = input() #密码
     if (spider.login(uid, password)):
         spider.run()
+    os.system("pause")
