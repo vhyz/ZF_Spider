@@ -41,16 +41,21 @@ class Spider:
         self.__headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.62 Safari/537.36',
         }
+        self.session = requests.Session()
         self.__now_lessons_number = 0
 
+
     def __set_real_url(self):
-        request = requests.get(self.__base_url, headers=self.__headers)
+        request = self.session.get(self.__base_url, headers=self.__headers)
         real_url = request.url
-        self.__real_base_url = real_url[:len(real_url) - len('default2.aspx')]
+        if self.__base_url == 'http://218.75.197.123:83':   # 湖南工业大学
+            self.__real_base_url = real_url[:len(real_url) - len('index.aspx')]
+        else:
+            self.__real_base_url = real_url[:len(real_url) - len('default2.aspx')]
         return request
 
     def __get_code(self):
-        request = requests.get(self.__real_base_url + 'CheckCode.aspx', headers=self.__headers)
+        request = self.session.get(self.__real_base_url + 'CheckCode.aspx', headers=self.__headers)
         with open('code.jpg', 'wb')as f:
             f.write(request.content)
         im = Image.open('code.jpg')
@@ -82,7 +87,7 @@ class Spider:
     def login(self, uid, password):
         while True:
             data = self.__get_login_data(uid, password)
-            request = requests.post(self.__real_base_url + 'default2.aspx', headers=self.__headers, data=data)
+            request = self.session.post(self.__real_base_url + 'default2.aspx', headers=self.__headers, data=data)
             soup = BeautifulSoup(request.text, 'lxml')
             if request.status_code != requests.codes.ok:
                 print('4XX or 5XX Error,try to login again')
@@ -116,7 +121,7 @@ class Spider:
             'gnmkdm': 'N121103',
         }
         self.__headers['Referer'] = self.__real_base_url + 'xs_main.aspx?xh=' + self.__uid
-        request = requests.get(self.__real_base_url + 'xf_xsqxxxk.aspx', params=data, headers=self.__headers)
+        request = self.session.get(self.__real_base_url + 'xf_xsqxxxk.aspx', params=data, headers=self.__headers)
         self.__headers['Referer'] = request.url
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
@@ -151,7 +156,7 @@ class Spider:
 
     def __search_lessons(self, lesson_name=''):
         self.__base_data['TextBox1'] = lesson_name.encode('gb2312')
-        request = requests.post(self.__headers['Referer'], data=self.__base_data, headers=self.__headers)
+        request = self.session.post(self.__headers['Referer'], data=self.__base_data, headers=self.__headers)
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
         return self.__get_lessons(soup)
@@ -162,7 +167,7 @@ class Spider:
         for lesson in lesson_list:
             code = lesson.code
             data[code] = 'on'
-        request = requests.post(self.__headers['Referer'], data=data, headers=self.__headers,timeout=1)
+        request = self.session.post(self.__headers['Referer'], data=data, headers=self.__headers)
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
         error_tag = soup.html.head.script
@@ -184,7 +189,7 @@ class Spider:
         print('请输入搜索课程名字')
         lesson_name = input()
         lesson_list = self.__search_lessons(lesson_name)
-        print('请输入想选的课的id，id为每门课程开头的数字')
+        print('请输入想选的课的id，id为每门课程开头的数字,如果没有课程显示，代表公选课暂无')
         for i in range(len(lesson_list)):
             print(i, end='')
             lesson_list[i].show()
@@ -195,7 +200,7 @@ class Spider:
                 number = self.__now_lessons_number
                 self.__select_lesson(lesson_list)
                 if self.__now_lessons_number > number:
-                    break;
+                    break
             except:
                 print("抢课失败，休息0.5秒后继续")
                 time.sleep(0.5)
