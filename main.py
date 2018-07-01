@@ -116,12 +116,11 @@ class Spider:
                 self.__name = name_tag.string[:len(name_tag.string) - 2]
                 print('欢迎' + self.__name)
                 self.__enter_lessons_first()
+                return True
             except:
                 print('Unknown Error,try to login again.')
                 time.sleep(0.5)
                 continue
-            finally:
-                return True
 
     def __enter_lessons_first(self):
         data = {
