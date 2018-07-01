@@ -48,14 +48,20 @@ class Spider:
     def __set_real_url(self):
         request = self.session.get(self.__base_url, headers=self.__headers)
         real_url = request.url
-        if self.__base_url == 'http://218.75.197.123:83':   # 湖南工业大学
-            self.__real_base_url = real_url[:len(real_url) - len('index.aspx')]
-        else:
+        if real_url != 'http://218.75.197.123:83/' and real_url != 'http://218.75.197.123:83/index.apsx':   # 湖南工业大学
             self.__real_base_url = real_url[:len(real_url) - len('default2.aspx')]
+        else:
+            if real_url.find('index') > 0:
+                self.__real_base_url = real_url[:len(real_url) - len('index.aspx')]
+            else:
+                self.__real_base_url = real_url
         return request
 
     def __get_code(self):
-        request = self.session.get(self.__real_base_url + 'CheckCode.aspx', headers=self.__headers)
+        if self.__real_base_url != 'http://218.75.197.123:83/':
+            request = self.session.get(self.__real_base_url + 'CheckCode.aspx', headers=self.__headers)
+        else:
+            request = self.session.get(self.__real_base_url + 'CheckCode.aspx?', headers=self.__headers)
         with open('code.jpg', 'wb')as f:
             f.write(request.content)
         im = Image.open('code.jpg')
@@ -87,7 +93,10 @@ class Spider:
     def login(self, uid, password):
         while True:
             data = self.__get_login_data(uid, password)
-            request = self.session.post(self.__real_base_url + 'default2.aspx', headers=self.__headers, data=data)
+            if self.__real_base_url != 'http://218.75.197.123:83/':
+                request = self.session.post(self.__real_base_url + 'default2.aspx', headers=self.__headers, data=data)
+            else:
+                request = self.session.post(self.__real_base_url + 'index.aspx', headers=self.__headers, data=data)
             soup = BeautifulSoup(request.text, 'lxml')
             if request.status_code != requests.codes.ok:
                 print('4XX or 5XX Error,try to login again')
