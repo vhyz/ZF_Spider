@@ -164,7 +164,9 @@ class Spider:
 
     def __search_lessons(self, lesson_name=''):
         self.__base_data['TextBox1'] = lesson_name.encode('gb2312')
-        request = self.session.post(self.__headers['Referer'], data=self.__base_data, headers=self.__headers)
+        data = self.__base_data.copy()
+        data['Button2'] = '确定'.encode('gb2312')
+        request = self.session.post(self.__headers['Referer'], data=data, headers=self.__headers)
         soup = BeautifulSoup(request.text, 'lxml')
         self.__set__VIEWSTATE(soup)
         return self.__get_lessons(soup)
