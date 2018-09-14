@@ -5,6 +5,7 @@ import copy
 import time
 import re
 import os
+import json
 
 
 class Spider:
@@ -46,6 +47,11 @@ class Spider:
 
 
     def __set_real_url(self):
+        '''
+        得到真实的登录地址（无Cookie）
+        获取Cookie（有Cookie)
+        :return: 该请求
+        '''
         request = self.session.get(self.__base_url, headers=self.__headers)
         real_url = request.url
         if real_url != 'http://218.75.197.123:83/' and real_url != 'http://218.75.197.123:83/index.apsx':   # 湖南工业大学
@@ -58,6 +64,10 @@ class Spider:
         return request
 
     def __get_code(self):
+        '''
+        获取验证码
+        :return: 验证码
+        '''
         if self.__real_base_url != 'http://218.75.197.123:83/':
             request = self.session.get(self.__real_base_url + 'CheckCode.aspx', headers=self.__headers)
         else:
@@ -71,6 +81,12 @@ class Spider:
         return code
 
     def __get_login_data(self, uid, password):
+        '''
+        得到登录包
+        :param uid: 学号
+        :param password: 密码
+        :return: 含登录包的data字典
+        '''
         self.__uid = uid
         request = self.__set_real_url()
         soup = BeautifulSoup(request.text, 'lxml')
@@ -91,6 +107,12 @@ class Spider:
         return data
 
     def login(self, uid, password):
+        '''
+        外露的登录接口
+        :param uid: 学号
+        :param password: 密码
+        :return: 抛出异常或返回是否登录成功的布尔值
+        '''
         while True:
             data = self.__get_login_data(uid, password)
             if self.__real_base_url != 'http://218.75.197.123:83/':
@@ -123,6 +145,10 @@ class Spider:
                 continue
 
     def __enter_lessons_first(self):
+        '''
+        首次进入选课界面
+        :return: none
+        '''
         data = {
             'xh': self.__uid,
             'xm': self.__name.encode('gb2312'),
@@ -148,6 +174,11 @@ class Spider:
         self.__base_data['__VIEWSTATE'] = __VIEWSTATE_tag['value']
 
     def __get_lessons(self, soup):
+        '''
+        提取传进来的soup的课程信息
+        :param soup:
+        :return: 课程信息列表
+        '''
         lesson_list = []
         lessons_tag = soup.find('table', id='kcmcGrid')
         lesson_tag_list = lessons_tag.find_all('tr')[1:]
@@ -163,6 +194,11 @@ class Spider:
         return lesson_list
 
     def __search_lessons(self, lesson_name=''):
+        '''
+        搜索课程
+        :param lesson_name: 课程名字
+        :return: 课程列表
+        '''
         self.__base_data['TextBox1'] = lesson_name.encode('gb2312')
         data = self.__base_data.copy()
         data['Button2'] = '确定'.encode('gb2312')
@@ -172,6 +208,11 @@ class Spider:
         return self.__get_lessons(soup)
 
     def __select_lesson(self, lesson_list):
+        '''
+        开始选课
+        :param lesson_list: 选的课程列表
+        :return: none
+        '''
         data = copy.deepcopy(self.__base_data)
         data['Button1'] = '  提交  '.encode('gb2312')
         for lesson in lesson_list:
@@ -196,6 +237,10 @@ class Spider:
             print(td.string)
 
     def run(self):
+        '''
+        开始运行
+        :return: none
+        '''
         print('请输入搜索课程名字')
         lesson_name = input()
         lesson_list = self.__search_lessons(lesson_name)
@@ -217,14 +262,13 @@ class Spider:
 
 
 if __name__ == '__main__':
-    print('请输入你们学校教务系统的地址，不用加上前面的http://')
-    url = input()
-    url = 'http://' + url
+    print('尝试登录...')
+    with open('config.json',encoding='utf-8')as f:
+        config = json.load(f)
+    url = config['url']
+    uid = config['student_number']
+    password = config['password']
     spider = Spider(url)
-    print('请输入学号')
-    uid = input()  #学号
-    print('请输入密码')
-    password = input() #密码
     if (spider.login(uid, password)):
         spider.run()
     os.system("pause")
