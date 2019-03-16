@@ -263,7 +263,7 @@ class Spider:
                 thread_list.append(threading.Thread(target=self.__select_lesson,args=(lesson_list,)))
             for i in range(15):
                 thread_list[i].start()
-            for i in range(15):
+            for i in range(15):  
                 thread_list[i].join()
 
 
