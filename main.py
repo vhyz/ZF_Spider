@@ -233,7 +233,6 @@ class Spider:
                     r = "alert\('(.+?)'\);"
                     for s in re.findall(r, error_tag_text):
                         print(s)
-                print('已成功选到的课程:')
                 selected_lessons_pre_tag = soup.find('legend', text='已选课程')
                 selected_lessons_tag = selected_lessons_pre_tag.next_sibling
                 tr_list = selected_lessons_tag.find_all('tr')[1:]
@@ -241,7 +240,6 @@ class Spider:
                 for tr in tr_list:
                     td = tr.find('td')
                     print(td.string)
-                print(time.time()-start)
 
     def run(self,uid,password):
         '''
