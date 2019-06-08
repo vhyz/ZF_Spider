@@ -188,7 +188,10 @@ class Spider:
             code = td_list[0].input['name']
             name = td_list[1].string
             teacher_name = td_list[3].string
-            Time = td_list[4]['title']
+            try:
+                Time = td_list[4]['title']
+            except:
+                Time = ''
             number = td_list[10].string
             lesson = self.Lesson(name, code, teacher_name, Time, number)
             lesson_list.append(lesson)
